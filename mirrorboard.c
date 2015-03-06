@@ -67,7 +67,7 @@ void setupInputDevice(char *device) {
 
 
 void setupOutputDevice() {
-  uinput = open("/dev/uinput", O_WRONLY | O_NDELAY);
+  uinput = open("/dev/uinput", O_WRONLY | O_NONBLOCK);
 
   memset(&uinput_device, 0, sizeof(uinput_device));
 
@@ -344,6 +344,10 @@ void processEvent(struct input_event evt) {
         }
     }
   }
+  evt.type = EV_SYN;
+  evt.code = SYN_REPORT;
+  evt.value = 0;
+  passEvent(evt);
 }
 
 
@@ -353,7 +357,6 @@ void mainLoop() {
 
   memset(&outside, 0, sizeof(outside));
   memset(&inside, 0, sizeof(inside));
-
   while (1) {
     rb=read(evdev,ev,sizeof(struct input_event)*64);
 
