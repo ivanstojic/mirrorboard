@@ -19,7 +19,7 @@ __u16 REMAPPED_CODES[][2] = {
   {KEY_3, KEY_8},
   {KEY_4, KEY_7},
   {KEY_5, KEY_6},
-    
+
   // First letter row
   {KEY_P, KEY_Q},
   {KEY_W, KEY_O},
@@ -67,8 +67,8 @@ void setupInputDevice(char *device) {
 
 
 void setupOutputDevice() {
-  uinput = open("/dev/input/uinput", O_WRONLY | O_NDELAY);
-  
+  uinput = open("/dev/uinput", O_WRONLY | O_NDELAY);
+
   memset(&uinput_device, 0, sizeof(uinput_device));
 
   strncpy(uinput_device.name, "MirrorBoard", UINPUT_MAX_NAME_SIZE);
@@ -78,7 +78,7 @@ void setupOutputDevice() {
 
   // Setup the uinput device as keyboard event emitting, and
   // ALL YOUR KEYS ARE BELONG TO DEVICE!
-  
+
   ioctl(uinput, UI_SET_EVBIT, EV_KEY);
 
   int i;
@@ -134,7 +134,7 @@ void goInside(struct input_event evt) {
 #ifdef DEBUG
   printf(">> Going inside\n");
 #endif
-  
+
   if (outsideMirror) {
     outsideMirror = 0;
     mirrorStartTime = evt.time.tv_sec * 1000000 + evt.time.tv_usec;
@@ -238,12 +238,12 @@ void emitSpace() {
   // Space pressed
   memset(&evt, 0, sizeof(evt));
   gettimeofday(&evt.time, NULL);
-  
+
   evt.type = EV_KEY;
   evt.code = KEY_SPACE;
   evt.value = 1;
   passEvent(evt);
-  
+
   evt.type = EV_SYN;
   evt.code = SYN_REPORT;
   evt.value = 0;
@@ -252,12 +252,12 @@ void emitSpace() {
   // Space released
   memset(&evt, 0, sizeof(evt));
   gettimeofday(&evt.time, NULL);
-  
+
   evt.type = EV_KEY;
   evt.code = KEY_SPACE;
   evt.value = 0;
   passEvent(evt);
-  
+
   evt.type = EV_SYN;
   evt.code = SYN_REPORT;
   evt.value = 0;
@@ -268,80 +268,80 @@ void emitSpace() {
 void processEvent(struct input_event evt) {
   if (outsideMirror) {
     // Outside mirror...
-      
+
     switch (evt.value) {
-    case 1:if (evt.code == KEY_SPACE) {
-	goInside(evt);
-	swallowEvent(evt);
+      case 1:if (evt.code == KEY_SPACE) {
+               goInside(evt);
+               swallowEvent(evt);
 
-      } else {
-	mark(outside, evt);
-	passEvent(evt);
-      }
-      break;
-	
-    case 0:if (marked(outside, evt)) {
-	unmark(outside, evt);
-	passEvent(evt);
+             } else {
+               mark(outside, evt);
+               passEvent(evt);
+             }
+             break;
 
-      } else {
-	unmark(inside, evt);
-	remapEvent(evt);
-      }
-      break;
-	
-    case 2:if (marked(outside, evt)) {
-	passEvent(evt);
-	  
-      } else {
-	remapEvent(evt);
-      }
-      break;
+      case 0:if (marked(outside, evt)) {
+               unmark(outside, evt);
+               passEvent(evt);
+
+             } else {
+               unmark(inside, evt);
+               remapEvent(evt);
+             }
+             break;
+
+      case 2:if (marked(outside, evt)) {
+               passEvent(evt);
+
+             } else {
+               remapEvent(evt);
+             }
+             break;
     }
-      
+
   } else {
     // Inside mirror
-      
+
     switch (evt.value) {
-    case 1:
-      mark(inside, evt);
-      mirrorCount++;
-      remapEvent(evt);
-      break;
-	  
-    case 0:
-      if (evt.code == KEY_SPACE) {
-	goOutside();
-	if (burst(evt)) {
-	  emitSpace();
+      case 1:
+        mark(inside, evt);
+        mirrorCount++;
+        remapEvent(evt);
+        break;
 
-	} else {
-	  swallowEvent(evt);
-	}
+      case 0:
+        if (evt.code == KEY_SPACE) {
+          goOutside();
+          if (burst(evt)) {
+            emitSpace();
 
-      } else {
-	if (marked(inside, evt)) {
-	  unmark(inside, evt);
-	  remapEvent(evt);
+          } else {
+            swallowEvent(evt);
+          }
 
-	} else {
-	  passEvent(evt);
-	}
-      }
-      break;
-	
-    case 2:
-      if (evt.code == KEY_SPACE) {
-	swallowEvent(evt);
+        } else {
+          if (marked(inside, evt)) {
+            unmark(inside, evt);
+            remapEvent(evt);
 
-      } else {
-	if (marked(inside, evt)) {
-	  remapEvent(evt);
+          } else {
+            passEvent(evt);
+          }
+        }
+        break;
 
-	} else {
-	  passEvent(evt);
-	}
-      }
+      case 2:
+        if (evt.code == KEY_SPACE) {
+          swallowEvent(evt);
+
+        } else {
+          if (marked(inside, evt)) {
+            remapEvent(evt);
+
+          } else {
+            passEvent(evt);
+          }
+        }
     }
   }
 }
@@ -353,7 +353,7 @@ void mainLoop() {
 
   memset(&outside, 0, sizeof(outside));
   memset(&inside, 0, sizeof(inside));
-  
+
   while (1) {
     rb=read(evdev,ev,sizeof(struct input_event)*64);
 
@@ -363,12 +363,12 @@ void mainLoop() {
     }
 
     int counter;
-    
+
     for (counter = 0;
-	 counter < (int) (rb / sizeof(struct input_event));
-	 counter++) {
+        counter < (int) (rb / sizeof(struct input_event));
+        counter++) {
       if (EV_KEY == ev[counter].type) {
-	processEvent(ev[counter]);
+        processEvent(ev[counter]);
       }
     }
   }
@@ -378,10 +378,10 @@ void mainLoop() {
 
 void cleanup() {
   struct input_event ev[64];
-  
+
   sleep(1);
   read(evdev, ev, sizeof(struct input_event)*64);
-  
+
   close(evdev);
   exit(0);
 }
@@ -390,9 +390,9 @@ void cleanup() {
 
 int main (int argc, char** argv) {
   printf("Okay... mirrorboard activating on %s in 1 second. Release all keys!\n", argv[1]);
-  
+
   setupDevices(argv[1]);
-  
+
   mainLoop();
 
   printf("Mirrorboard is terminating in 1 second. Release all keys!\n");
